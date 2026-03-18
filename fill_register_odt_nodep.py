@@ -59,8 +59,18 @@ def generate_odt(json_path, output_path, section="8.2.1"):
             )
         body += '</table:table-row>\n'
 
+        # Sort fields MSB first (descending by upper bit number)
+        def msb_key(f):
+            bits = f.get("bits", "0")
+            try:
+                return -int(bits.split(":")[0])
+            except ValueError:
+                return 0
+
+        sorted_fields = sorted(fields, key=msb_key)
+
         # Field rows
-        for field in fields:
+        for field in sorted_fields:
             body += '<table:table-row>\n'
             for val in [field.get("bits",        ""),
                         field.get("description", ""),
