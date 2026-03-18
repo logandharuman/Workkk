@@ -1,0 +1,97 @@
+{
+  "module": "Board Registers",
+  "base_address": "0x00",
+  "registers": [
+    {
+      "name": "Board ID Register",
+      "offset": "0x00",
+      "description": "This register holds the unique board identifier assigned during manufacturing. It is read-only and reflects the hardware revision of the board as programmed during production test.",
+      "fields": [
+        {
+          "bits": "15:0",
+          "name": "BOARD_ID",
+          "access": "R",
+          "default": "0x5601",
+          "description": "Board ID"
+        }
+      ]
+    },
+    {
+      "name": "Board Version and FPGA Version Register",
+      "offset": "0x01",
+      "description": "This register encodes both the board hardware version and the FPGA firmware version. The upper byte reflects the PCB revision while the lower byte tracks the FPGA build version loaded during configuration.",
+      "fields": [
+        {
+          "bits": "15:8",
+          "name": "BOARD_VER",
+          "access": "R",
+          "default": "0x1",
+          "description": "Board version"
+        },
+        {
+          "bits": "7:0",
+          "name": "FPGA_VER",
+          "access": "R",
+          "default": "0x1",
+          "description": "FPGA Version"
+        }
+      ]
+    },
+    {
+      "name": "FPGA Type ID and Release Version Register",
+      "offset": "0x02",
+      "description": "Encodes the FPGA device type identifier and the release version of the design loaded onto it. Used during system initialization to verify compatibility between firmware and hardware.",
+      "fields": [
+        {
+          "bits": "15:8",
+          "name": "FPGA_TYPE_ID",
+          "access": "R",
+          "default": "0x9",
+          "description": "FPGA Type ID"
+        },
+        {
+          "bits": "7:0",
+          "name": "FPGA_REL_VER",
+          "access": "R",
+          "default": "0x1",
+          "description": "FPGA Release version"
+        }
+      ]
+    },
+    {
+      "name": "Software Reset Register",
+      "offset": "0x03",
+      "description": "Provides software-controlled reset capability for the FPGA logic. Writing a 1 to the reset bit initiates a full soft reset of all internal state machines and data paths. The bit auto-clears after reset completion.",
+      "fields": [
+        {
+          "bits": "15:1",
+          "name": "RESERVED",
+          "access": "R",
+          "default": "0x0",
+          "description": "Reserved"
+        },
+        {
+          "bits": "0",
+          "name": "SOFT_RST",
+          "access": "W/R",
+          "default": "0x0",
+          "description": "1 → Reset, 0 → Normal operation"
+        }
+      ]
+    },
+    {
+      "name": "Scratch Pad Register",
+      "offset": "0x04",
+      "description": "General purpose read/write scratch pad register. No functional effect on hardware. Intended for use by software during debug and integration testing to verify register bus connectivity.",
+      "fields": [
+        {
+          "bits": "15:0",
+          "name": "SCRATCH",
+          "access": "W/R",
+          "default": "0x0",
+          "description": "Scratch pad"
+        }
+      ]
+    }
+  ]
+}
