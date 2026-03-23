@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DevMem Register Tool</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Exo+2:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg:       #080b0f;
+  --surf:     #0d1117;
+  --panel:    #111820;
+  --border:   #1c2a38;
+  --border2:  #243447;
+  --cyan:     #00e5ff;
+  --orange:   #ff7043;
+  --purple:   #b388ff;
+  --green:    #00e676;
+  --red:      #ff1744;
+  --yellow:   #ffea00;
+  --text:     #cdd9e5;
+  --muted:    #4a6070;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Exo 2', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;display:flex;flex-direction:column}
+
+/* grid bg */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;z-index:0
+}
+
+/* ── HEADER ── */
+header{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 22px;
+  background:var(--surf);
+  border-bottom:1px solid var(--border);
+  position:relative;z-index:10;flex-shrink:0;
+}
+.hlogo{
+  width:34px;height:34px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--cyan),#0066ff);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:700;color:#000;
+}
+header h1{font-size:16px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--cyan)}
+header h1 em{color:var(--text);font-style:normal;font-weight:400}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px}
+.conn-pill{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  background:var(--panel);border:1px solid var(--border);
+  padding:5px 12px;border-radius:3px;
+}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:.3s}
+.conn-dot.on {background:var(--green);box-shadow:0 0 8px var(--green)}
+.conn-dot.err{background:var(--red);  box-shadow:0 0 8px var(--red)}
+
+/* ── BODY LAYOUT ── */
+.body{display:flex;flex:1;overflow:hidden;position:relative;z-index:1}
+
+/* ── LEFT RAIL ── */
+.rail{
+  width:270px;flex-shrink:0;
+  background:var(--surf);border-right:1px solid var(--border);
+  overflow-y:auto;display:flex;flex-direction:column;
+}
+.rsec{padding:16px 18px;border-bottom:1px solid var(--border)}
+.rlabel{
+  font-size:9px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px
+}
+.rlabel::after{content:'';flex:1;height:1px;background:var(--border)}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+input[type=text],input[type=password]{
+  width:100%;background:var(--panel);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:7px 9px;border-radius:3px;outline:none;transition:.2s;
+}
+input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,.07)}
+input[type=password]{letter-spacing:3px}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 14px;border:none;border-radius:3px;cursor:pointer;
+  font-family:var(--sans);font-size:12px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;transition:.15s;
+}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-w{width:100%}
+.btn-cyan  {background:var(--cyan);  color:#000}
+.btn-green {background:var(--green); color:#000}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-ghost {background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-cyan:hover:not(:disabled)  {background:#33ecff;box-shadow:0 0 14px rgba(0,229,255,.3)}
+.btn-green:hover:not(:disabled) {background:#33ff90;box-shadow:0 0 14px rgba(0,230,118,.3)}
+.btn-orange:hover:not(:disabled){background:#ff8a65;box-shadow:0 0 14px rgba(255,112,67,.3)}
+.btn-ghost:hover:not(:disabled) {border-color:var(--cyan);color:var(--cyan)}
+.btn-sm{padding:5px 10px;font-size:10px}
+.btn-xs{padding:3px 8px;font-size:10px;letter-spacing:.5px}
+
+/* mode tabs */
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:4px}
+.mtab{
+  padding:8px 4px;text-align:center;border:1px solid var(--border);
+  border-radius:3px;cursor:pointer;
+  font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);background:var(--panel);transition:.15s;
+}
+.mtab:hover{border-color:var(--border2);color:var(--text)}
+.mtab.active-r{border-color:var(--cyan);  color:var(--cyan);  background:rgba(0,229,255,.07)}
+.mtab.active-w{border-color:var(--orange);color:var(--orange);background:rgba(255,112,67,.07)}
+.mtab.active-c{border-color:var(--purple);color:var(--purple);background:rgba(179,136,255,.07)}
+
+/* ── MAIN AREA ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 18px;background:var(--surf);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.tb-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-right:auto}
+.pbar-wrap{width:140px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:none}
+.pbar-wrap.on{display:block}
+.pbar{height:100%;background:var(--cyan);width:0%;transition:width .2s;border-radius:2px}
+
+/* stats */
+.stats{
+  display:flex;gap:8px;padding:8px 18px;
+  background:var(--panel);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.spill{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:11px;
+  padding:3px 10px;border-radius:2px;border:1px solid var(--border);
+}
+.spill .sv{font-weight:700}
+.sp-t .sv{color:var(--cyan)}
+.sp-ok .sv{color:var(--green)}
+.sp-er .sv{color:var(--red)}
+
+/* content split */
+.content-area{flex:1;display:flex;overflow:hidden}
+
+/* input panel */
+.input-panel{
+  width:360px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.panel-title{
+  font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+/* inline rows table */
+.row-table{width:100%;border-collapse:collapse}
+.row-table th{
+  text-align:left;padding:5px 6px;
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--border);
+}
+.row-table td{padding:3px 4px;vertical-align:middle}
+.row-table td input{
+  padding:5px 6px;font-size:11px;background:var(--panel);
+  border:1px solid var(--border);color:var(--text);
+  border-radius:2px;width:100%;font-family:var(--mono);
+}
+.row-table td input:focus{border-color:var(--cyan)}
+.del-btn{
+  background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:14px;line-height:1;padding:2px 4px;border-radius:2px;
+  transition:.15s;
+}
+.del-btn:hover{color:var(--red);background:rgba(255,23,68,.1)}
+
+/* rw select */
+.rw-sel{
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:11px;
+  padding:5px 4px;border-radius:2px;width:100%;outline:none;
+}
+.rw-sel:focus{border-color:var(--purple)}
+
+/* csv attach */
+.csv-drop{
+  border:2px dashed var(--border2);border-radius:4px;
+  padding:14px;text-align:center;cursor:pointer;transition:.2s;
+}
+.csv-drop:hover,.csv-drop.over{border-color:var(--cyan);background:rgba(0,229,255,.04)}
+.csv-drop .di{font-size:20px;margin-bottom:4px}
+.csv-drop span{display:block;font-size:11px;color:var(--muted)}
+.csv-drop .hint{font-size:10px;color:var(--cyan);margin-top:2px}
+.csv-fname{font-family:var(--mono);font-size:11px;color:var(--green);margin-top:4px;word-break:break-all}
+
+/* results panel */
+.results-panel{flex:1;overflow:auto;padding:16px}
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;gap:10px;color:var(--muted);
+}
+.empty-icon{font-size:44px;opacity:.25}
+.empty-state p{font-size:12px;letter-spacing:1px}
+
+table.res{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+table.res thead th{
+  text-align:left;padding:8px 12px;
+  font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--bg);
+}
+table.res tbody tr{border-bottom:1px solid rgba(28,42,56,.5);transition:.1s}
+table.res tbody tr:hover{background:rgba(0,229,255,.025)}
+table.res tbody td{padding:7px 12px;vertical-align:middle}
+.v-ok  {color:var(--green);font-weight:600}
+.v-err {color:var(--red)}
+.v-pend{color:var(--muted);animation:blink 1s infinite}
+.v-addr{color:#7ebfdb}
+.v-rw-r{color:var(--cyan)}
+.v-rw-w{color:var(--orange)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
+.bk-ok  {background:rgba(0,230,118,.12);color:var(--green);border:1px solid rgba(0,230,118,.25)}
+.bk-err {background:rgba(255,23,68,.12); color:var(--red);  border:1px solid rgba(255,23,68,.25)}
+.bk-run {background:rgba(255,234,0,.1);  color:var(--yellow);border:1px solid rgba(255,234,0,.2)}
+.bk-skip{background:rgba(74,96,112,.15); color:var(--muted); border:1px solid var(--border)}
+
+/* ── CONSOLE ── */
+.console{
+  height:110px;flex-shrink:0;
+  background:var(--surf);border-top:1px solid var(--border);
+  overflow-y:auto;padding:8px 14px;
+  font-family:var(--mono);font-size:11px;
+}
+.ll{display:flex;gap:8px;line-height:1.9}
+.lts{color:var(--muted);flex-shrink:0}
+.li{color:var(--cyan)}
+.lo{color:var(--green)}
+.le{color:var(--red)}
+.lw{color:var(--yellow)}
+
+/* csv preview table */
+.csv-preview-wrap{
+  margin-top:10px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  overflow:auto;
+  max-height:340px;
+}
+.csv-preview-wrap table{
+  width:100%;border-collapse:collapse;
+  font-family:var(--mono);font-size:11px;white-space:nowrap;
+}
+.csv-preview-wrap thead th{
+  padding:5px 10px;
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);background:var(--panel);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;
+}
+.csv-preview-wrap tbody tr{border-bottom:1px solid rgba(28,42,56,.5);transition:.1s}
+.csv-preview-wrap tbody tr:hover{background:rgba(0,229,255,.03)}
+.csv-preview-wrap tbody td{padding:5px 10px;color:var(--text)}
+.csv-preview-wrap tbody td.col-addr{color:#7ebfdb}
+.csv-preview-wrap tbody td.col-data{color:var(--orange)}
+.csv-preview-wrap tbody td.col-rw-r{color:var(--cyan)}
+.csv-preview-wrap tbody td.col-rw-w{color:var(--orange)}
+.csv-preview-row-num{color:var(--muted)!important;user-select:none;width:28px}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="hlogo">DM</div>
+  <h1>DEVMEM <em>Register Tool</em></h1>
+  <div class="hright">
+    <div class="conn-pill">
+      <div class="conn-dot" id="cDot"></div>
+      <span id="cLabel">DISCONNECTED</span>
+    </div>
+  </div>
+</header>
+
+<div class="body">
+
+  <!-- ── LEFT RAIL ── -->
+  <aside class="rail">
+
+    <!-- SSH -->
+    <div class="rsec">
+      <div class="rlabel">SSH Config</div>
+      <div class="field"><label>Host / IP</label><input type="text" id="sHost" placeholder="192.168.1.100"/></div>
+      <div class="field"><label>Username</label><input type="text" id="sUser" placeholder="root"/></div>
+      <div class="field"><label>Password</label><input type="password" id="sPass" placeholder="••••••"/></div>
+      <button class="btn btn-cyan btn-w" id="btnConn" onclick="doConnect()">⚡ Connect</button>
+    </div>
+
+    <!-- Mode -->
+    <div class="rsec">
+      <div class="rlabel">Mode</div>
+      <div class="mode-tabs">
+        <div class="mtab active-r" id="mt-r" onclick="setMode('r')">READ</div>
+        <div class="mtab"          id="mt-w" onclick="setMode('w')">WRITE</div>
+        <div class="mtab"          id="mt-c" onclick="setMode('c')">CUSTOM</div>
+      </div>
+      <div id="modeDesc" style="font-size:10px;color:var(--muted);margin-top:6px;">
+        Read 32-bit register values from addresses.
+      </div>
+    </div>
+
+    <!-- Input method -->
+    <div class="rsec">
+      <div class="rlabel">Input Method</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+        <div class="mtab active-r" id="im-inline" onclick="setInput('inline')" style="font-size:9px">INLINE</div>
+        <div class="mtab"          id="im-csv"    onclick="setInput('csv')"    style="font-size:9px">CSV FILE</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px" id="inputHint">
+        Enter up to 10 rows directly in the table.
+      </div>
+    </div>
+
+    <!-- Run -->
+    <div class="rsec" style="margin-top:auto">
+      <button class="btn btn-green btn-w" id="btnRun" onclick="doRun()" disabled>▶ RUN BATCH</button>
+      <div style="height:6px"></div>
+      <button class="btn btn-ghost btn-w btn-sm" id="btnExport" onclick="doExport()" disabled>⬇ Export CSV</button>
+      <div style="height:6px"></div>
+      <button class="btn btn-ghost btn-w btn-sm" onclick="clearResults()">✕ Clear Results</button>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- toolbar -->
+    <div class="toolbar">
+      <span class="tb-title" id="tbTitle">INPUT & RESULTS</span>
+      <div class="pbar-wrap" id="pbarWrap"><div class="pbar" id="pbar"></div></div>
+    </div>
+
+    <!-- stats -->
+    <div class="stats" id="statsBar" style="display:none">
+      <div class="spill sp-t"><span>Total</span><span class="sv" id="sTot">0</span></div>
+      <div class="spill sp-ok"><span>OK</span><span class="sv" id="sOk">0</span></div>
+      <div class="spill sp-er"><span>Errors</span><span class="sv" id="sErr">0</span></div>
+    </div>
+
+    <!-- content -->
+    <div class="content-area">
+
+      <!-- input panel -->
+      <div class="input-panel" id="inputPanel">
+
+        <!-- INLINE section -->
+        <div id="sec-inline">
+          <div class="panel-title">
+            <span id="inlineTitle">INLINE ROWS</span>
+            <button class="btn btn-ghost btn-xs" onclick="addRow()">+ Add Row</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="row-table" id="rowTable">
+              <thead id="rowHead"></thead>
+              <tbody id="rowBody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:8px;font-size:10px;color:var(--muted)">
+            Max 10 inline rows. For larger batches use CSV file mode.
+          </div>
+        </div>
+
+        <!-- CSV section -->
+        <div id="sec-csv" style="display:none">
+          <div class="panel-title">
+            <span id="csvTitle">CSV FILE</span>
+            <button class="btn btn-ghost btn-xs" id="btnClearCsv" onclick="clearCSV()" style="display:none">✕ Clear</button>
+          </div>
+          <div class="csv-drop" id="csvDrop"
+               onclick="document.getElementById('csvFile').click()"
+               ondragover="dov(event)" ondrop="ddr(event)" ondragleave="dlv(event)">
+            <div class="di">📂</div>
+            <span>Click or drag & drop CSV</span>
+            <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="loadCSV(event)"/>
+          </div>
+
+          <!-- file meta + preview -->
+          <div id="csvLoaded" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:6px;flex-wrap:wrap">
+              <div class="csv-fname" id="csvFname"></div>
+              <div style="font-size:10px;color:var(--muted)" id="csvRowCount"></div>
+            </div>
+            <div class="csv-preview-wrap" id="csvPreviewWrap">
+              <table>
+                <thead id="csvPreviewHead"></thead>
+                <tbody id="csvPreviewBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- schema hint (shown when no file loaded) -->
+          <div id="csvSchemaWrap" style="margin-top:10px">
+            <div class="panel-title"><span>EXPECTED COLUMNS</span></div>
+            <div id="csvSchema" style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;line-height:2"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- results panel -->
+      <div class="results-panel">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📊</div>
+          <p>Configure → Run → See results here</p>
+        </div>
+        <table class="res" id="resTable" style="display:none">
+          <thead id="resHead"></thead>
+          <tbody id="resBody"></tbody>
+        </table>
+      </div>
+
+    </div><!-- content-area -->
+
+    <!-- console -->
+    <div class="console" id="console"></div>
+
+  </div><!-- main -->
+</div><!-- body -->
+
+<script>
+const API = 'http://127.0.0.1:8765';
+let mode = 'r';       // r | w | c
+let inputMode = 'inline'; // inline | csv
+let csvRows = [];
+let lastResults = [];
+let connected = false;
+
+// ── LOGGING ─────────────────────────────────────────────────────────────────
+function ts(){const d=new Date();return[d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':')}
+function log(msg,t='i'){
+  const el=document.getElementById('console');
+  const ln=document.createElement('div');ln.className='ll';
+  ln.innerHTML=`<span class="lts">[${ts()}]</span><span class="l${t}">${msg}</span>`;
+  el.appendChild(ln);el.scrollTop=el.scrollHeight;
+}
+
+// ── SSH CONNECT ───────────────────────────────────────────────────────────────
+async function doConnect(){
+  const host=document.getElementById('sHost').value.trim();
+  const user=document.getElementById('sUser').value.trim();
+  const pass=document.getElementById('sPass').value;
+  if(!host||!user){log('Host and username required.','e');return;}
+  const btn=document.getElementById('btnConn');
+  btn.disabled=true;btn.textContent='⏳ Connecting...';
+  log(`Connecting → ${user}@${host} ...`,'i');
+  try{
+    const res=await fetch(`${API}/api/connect`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host,username:user,password:pass})});
+    const d=await res.json();
+    if(d.ok){
+      connected=true;
+      document.getElementById('cDot').className='conn-dot on';
+      document.getElementById('cLabel').textContent=`${user}@${host}`;
+      document.getElementById('btnRun').disabled=false;
+      log(d.message,'o');
+    } else {
+      document.getElementById('cDot').className='conn-dot err';
+      log(`Connection failed: ${d.message}`,'e');
+    }
+  }catch(e){
+    document.getElementById('cDot').className='conn-dot err';
+    log(`Cannot reach backend. Is server.py running? (${e.message})`,'e');
+  }
+  btn.disabled=false;btn.textContent='⚡ Connect';
+}
+
+// ── MODE ──────────────────────────────────────────────────────────────────────
+const modeDescs={
+  r:'Read 32-bit register values. Only address required.',
+  w:'Write 32-bit values to registers. Address + data required.',
+  c:'Custom sequence — mix reads and writes. Set R/W per row.'
+};
+const csvSchemas={
+  r:`<div><span style="color:var(--cyan)">address</span> — hex register address (required)</div>
+     <div><span style="color:var(--muted)">any other columns</span> — preserved in output</div>
+     <div style="margin-top:6px;color:var(--border2)">Example:</div>
+     <div style="color:var(--text)">address,reg_name</div>
+     <div style="color:var(--text)">0xFF200000,CTRL_REG</div>`,
+  w:`<div><span style="color:var(--cyan)">address</span> — hex register address (required)</div>
+     <div><span style="color:var(--orange)">data</span> — hex value to write (required)</div>
+     <div style="margin-top:6px;color:var(--border2)">Example:</div>
+     <div style="color:var(--text)">address,data,reg_name</div>
+     <div style="color:var(--text)">0xFF200000,0x00000001,CTRL_REG</div>`,
+  c:`<div><span style="color:var(--cyan)">address</span> — hex register address (required)</div>
+     <div><span style="color:var(--orange)">data</span> — hex value (required for writes)</div>
+     <div><span style="color:var(--purple)">rw</span> — <b>r</b> for read, <b>w</b> for write (required)</div>
+     <div style="margin-top:6px;color:var(--border2)">Example:</div>
+     <div style="color:var(--text)">address,data,rw,reg_name</div>
+     <div style="color:var(--text)">0xFF200000,,r,CTRL_REG</div>
+     <div style="color:var(--text)">0xFF200004,0x00000001,w,DATA_REG</div>`
+};
+
+function setMode(m){
+  mode=m;
+  ['r','w','c'].forEach(x=>{
+    const el=document.getElementById(`mt-${x}`);
+    el.className='mtab'+(x===m?` active-${m==='r'?'r':m==='w'?'w':'c'}`:'');
+  });
+  document.getElementById('modeDesc').textContent=modeDescs[m];
+  document.getElementById('csvSchema').innerHTML=csvSchemas[m];
+  rebuildInlineTable();
+  updateTitles();
+}
+
+function setInput(im){
+  inputMode=im;
+  document.getElementById('im-inline').className='mtab'+(im==='inline'?' active-r':'');
+  document.getElementById('im-csv').className   ='mtab'+(im==='csv'   ?' active-r':'');
+  document.getElementById('sec-inline').style.display=im==='inline'?'block':'none';
+  document.getElementById('sec-csv').style.display   =im==='csv'   ?'block':'none';
+  document.getElementById('inputHint').textContent=im==='inline'?'Enter up to 10 rows directly in the table.':'Attach a CSV file with register data.';
+  // only show schema hint if no CSV loaded yet
+  if(im==='csv' && !csvRows.length){
+    document.getElementById('csvSchemaWrap').style.display='block';
+  }
+  document.getElementById('csvSchema').innerHTML=csvSchemas[mode];
+  updateTitles();
+}
+
+function updateTitles(){
+  const mLabel={r:'READ',w:'WRITE',c:'CUSTOM SEQUENCE'}[mode];
+  const iLabel=inputMode==='inline'?'INLINE':'CSV';
+  document.getElementById('tbTitle').textContent=`${mLabel} — ${iLabel} MODE`;
+}
+
+// ── INLINE TABLE ─────────────────────────────────────────────────────────────
+function colsForMode(m){
+  if(m==='r') return [{key:'address',ph:'0xFF200000',label:'Address',w:'160px'}];
+  if(m==='w') return [{key:'address',ph:'0xFF200000',label:'Address',w:'140px'},{key:'data',ph:'0x00000001',label:'Data',w:'130px'}];
+  return [{key:'address',ph:'0xFF200000',label:'Address',w:'130px'},{key:'data',ph:'0x00000001',label:'Data',w:'110px'},{key:'rw',ph:'r',label:'R/W',w:'60px',isRW:true}];
+}
+
+let inlineRows=[];
+
+function rebuildInlineTable(){
+  const cols=colsForMode(mode);
+  const head=document.getElementById('rowHead');
+  const body=document.getElementById('rowBody');
+  head.innerHTML='<tr>'+cols.map(c=>`<th style="width:${c.w}">${c.label}</th>`).join('')+'<th style="width:30px"></th></tr>';
+  // keep existing data, just re-render
+  if(inlineRows.length===0) inlineRows=[makeBlankRow()];
+  renderInlineRows();
+}
+
+function makeBlankRow(){
+  const r={};
+  colsForMode(mode).forEach(c=>r[c.key]='');
+  return r;
+}
+
+function renderInlineRows(){
+  const cols=colsForMode(mode);
+  const body=document.getElementById('rowBody');
+  body.innerHTML=inlineRows.map((row,i)=>
+    '<tr>'+cols.map(c=>{
+      if(c.isRW){
+        return `<td><select class="rw-sel" onchange="inlineRows[${i}].rw=this.value">
+          <option value="r" ${(row.rw||'r')==='r'?'selected':''}>r</option>
+          <option value="w" ${(row.rw||'')  ==='w'?'selected':''}>w</option>
+        </select></td>`;
+      }
+      return `<td><input type="text" value="${escA(row[c.key]||'')}" placeholder="${c.ph}"
+        oninput="inlineRows[${i}]['${c.key}']=this.value"/></td>`;
+    }).join('')+
+    `<td><button class="del-btn" onclick="delRow(${i})">×</button></td></tr>`
+  ).join('');
+}
+
+function addRow(){
+  if(inlineRows.length>=10){log('Max 10 inline rows. Use CSV mode for more.','w');return;}
+  inlineRows.push(makeBlankRow());
+  renderInlineRows();
+}
+
+function delRow(i){
+  inlineRows.splice(i,1);
+  if(inlineRows.length===0) inlineRows=[makeBlankRow()];
+  renderInlineRows();
+}
+
+function escA(s){return s.replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+
+// ── CSV ATTACH ───────────────────────────────────────────────────────────────
+function dov(e){e.preventDefault();document.getElementById('csvDrop').classList.add('over')}
+function dlv(e){document.getElementById('csvDrop').classList.remove('over')}
+function ddr(e){e.preventDefault();dlv(e);const f=e.dataTransfer.files[0];if(f)readFile(f)}
+function loadCSV(e){const f=e.target.files[0];if(f)readFile(f)}
+
+function readFile(f){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const text=ev.target.result.trim();
+    csvRows=parseCSVText(text);
+    if(!csvRows.length){log('CSV empty or unreadable.','e');return;}
+
+    const hdrs=Object.keys(csvRows[0]);
+
+    // meta
+    document.getElementById('csvFname').textContent=f.name;
+    document.getElementById('csvRowCount').textContent=`${csvRows.length} rows · ${hdrs.length} columns`;
+
+    // build preview thead
+    const thead=document.getElementById('csvPreviewHead');
+    thead.innerHTML='<tr><th class="csv-preview-row-num">#</th>'+
+      hdrs.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr>';
+
+    // build preview tbody — colour key columns
+    const addrKeys=new Set(['address','Address','ADDR','addr']);
+    const dataKeys=new Set(['data','Data','DATA','value','Value']);
+    const rwKeys  =new Set(['rw','RW','r/w','R/W']);
+
+    const tbody=document.getElementById('csvPreviewBody');
+    tbody.innerHTML=csvRows.map((row,i)=>
+      `<tr><td class="csv-preview-row-num">${i+1}</td>`+
+      hdrs.map(h=>{
+        const v=esc(row[h]??'');
+        let cls='';
+        if(addrKeys.has(h))cls='col-addr';
+        else if(dataKeys.has(h))cls='col-data';
+        else if(rwKeys.has(h)) cls=(row[h]||'').trim().toLowerCase()==='w'?'col-rw-w':'col-rw-r';
+        return`<td class="${cls}">${v}</td>`;
+      }).join('')+'</tr>'
+    ).join('');
+
+    // show preview, hide schema hint
+    document.getElementById('csvLoaded').style.display='block';
+    document.getElementById('csvSchemaWrap').style.display='none';
+    document.getElementById('btnClearCsv').style.display='inline-flex';
+
+    log(`Loaded ${f.name} — ${csvRows.length} rows, ${hdrs.length} columns`,'o');
+  };
+  r.readAsText(f);
+}
+
+function clearCSV(){
+  csvRows=[];
+  document.getElementById('csvFname').textContent='';
+  document.getElementById('csvRowCount').textContent='';
+  document.getElementById('csvPreviewHead').innerHTML='';
+  document.getElementById('csvPreviewBody').innerHTML='';
+  document.getElementById('csvLoaded').style.display='none';
+  document.getElementById('csvSchemaWrap').style.display='block';
+  document.getElementById('btnClearCsv').style.display='none';
+  document.getElementById('csvFile').value='';
+  log('CSV cleared.','i');
+}
+
+function parseCSVText(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(lines.length<2)return[];
+  const hdrs=lines[0].split(',').map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const vals=line.split(',').map(v=>v.trim());
+    const row={};
+    hdrs.forEach((h,i)=>row[h]=vals[i]??'');
+    return row;
+  });
+}
+
+// ── RUN ───────────────────────────────────────────────────────────────────────
+async function doRun(){
+  // Gather rows
+  let rows=[];
+  if(inputMode==='inline'){
+    rows=inlineRows.filter(r=>(r.address||'').trim());
+    if(!rows.length){log('No addresses entered.','w');return;}
+  } else {
+    if(!csvRows.length){log('No CSV loaded.','w');return;}
+    rows=csvRows;
+  }
+
+  const modeMap={r:'read',w:'write',c:'custom'};
+  const apiMode=modeMap[mode];
+  log(`Starting ${apiMode.toUpperCase()} — ${rows.length} rows...`,'i');
+
+  // show pending table
+  buildResTable(rows, apiMode, true);
+  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('pbarWrap').classList.add('on');
+  document.getElementById('btnRun').disabled=true;
+
+  try{
+    const res=await fetch(`${API}/api/run`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:apiMode,rows})
+    });
+    const d=await res.json();
+    if(!d.ok){log(`Error: ${d.error}`,'e');}
+    else{
+      lastResults=d.results;
+      buildResTable(d.results,apiMode,false);
+      const ok=d.results.filter(r=>r.status==='ok').length;
+      const er=d.results.filter(r=>r.status==='error').length;
+      document.getElementById('sTot').textContent=d.results.length;
+      document.getElementById('sOk').textContent=ok;
+      document.getElementById('sErr').textContent=er;
+      log(`Done — ${ok} OK, ${er} errors.`,er?'w':'o');
+      document.getElementById('btnExport').disabled=false;
+    }
+  }catch(e){log(`Fetch error: ${e.message}`,'e');}
+
+  document.getElementById('pbar').style.width='100%';
+  setTimeout(()=>{document.getElementById('pbarWrap').classList.remove('on');document.getElementById('pbar').style.width='0'},700);
+  document.getElementById('btnRun').disabled=false;
+}
+
+// ── RESULTS TABLE ─────────────────────────────────────────────────────────────
+function buildResTable(rows, apiMode, pending){
+  if(!rows.length)return;
+  const allKeys=[...new Set(rows.flatMap(r=>Object.keys(r)))];
+
+  const head=document.getElementById('resHead');
+  const body=document.getElementById('resBody');
+
+  head.innerHTML='<tr>'+allKeys.map(k=>`<th>${k.replace(/_/g,' ')}</th>`).join('')+'</tr>';
+
+  body.innerHTML=rows.map(row=>{
+    return '<tr>'+allKeys.map(key=>{
+      let cls='',val=row[key]??'';
+      if(key==='address')cls='v-addr';
+      if(key==='rw')return`<td class="${val==='w'?'v-rw-w':'v-rw-r'}">${val}</td>`;
+      if(key==='read_value'||key==='result'){
+        if(pending){cls='v-pend';val='…';}
+        else if(String(val).startsWith('ERROR'))cls='v-err';
+        else if(val&&val!=='—')cls='v-ok';
+      }
+      if(key==='write_status'){
+        if(pending){cls='v-pend';val='…';}
+        else if(val==='OK')cls='v-ok';
+        else if(String(val).startsWith('ERROR'))cls='v-err';
+      }
+      if(key==='status'){
+        if(pending)return`<td><span class="badge bk-run">RUN</span></td>`;
+        if(val==='ok')return`<td><span class="badge bk-ok">OK</span></td>`;
+        if(val==='error')return`<td><span class="badge bk-err">ERR</span></td>`;
+        return`<td><span class="badge bk-skip">—</span></td>`;
+      }
+      return`<td class="${cls}">${esc(String(val))}</td>`;
+    }).join('')+'</tr>';
+  }).join('');
+
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resTable').style.display='table';
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function clearResults(){
+  lastResults=[];
+  document.getElementById('resHead').innerHTML='';
+  document.getElementById('resBody').innerHTML='';
+  document.getElementById('resTable').style.display='none';
+  document.getElementById('emptyState').style.display='flex';
+  document.getElementById('statsBar').style.display='none';
+  document.getElementById('btnExport').disabled=true;
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+async function doExport(){
+  if(!lastResults.length)return;
+  try{
+    const res=await fetch(`${API}/api/export`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rows:lastResults})
+    });
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='devmem_results.csv';a.click();
+    URL.revokeObjectURL(url);
+    log('Results exported.','o');
+  }catch(e){log(`Export failed: ${e.message}`,'e');}
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+rebuildInlineTable();
+setMode('r');
+setInput('inline');
+document.getElementById('csvSchema').innerHTML=csvSchemas['r'];
+log('DevMem Register Tool v2 ready.','i');
+log('Start server.py first, then connect.','w');
+</script>
+</body>
+</html>
